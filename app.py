@@ -10,6 +10,10 @@ import subprocess
 import os
 # 打开浏览器的库
 import webbrowser
+# 新增导入json模块，用来解析pytest输出统计用例数量
+import json
+# 导入刚刚写的建表函数
+from models.db_model import create_test_history_table
 
 
 # 创建Flask应用实例，__name__代表当前模块
@@ -20,7 +24,7 @@ db_config = {
     "host": "127.0.0.1",   # mysql本机地址
     "port": 3306,          # mysql端口，默认3306
     "user": "root",        # mysql用户名
-    "password": "@Xyx5201314", # 换成你自己的mysql密码！！！
+    "password": "@Xyx5201314", # mysql密码
     "database": "api_platform", # 使用的数据库名
     "charset": "utf8mb4"    # 字符集，支持中文
 }
@@ -32,7 +36,7 @@ def get_db_conn():
     return conn
 
 
-# =====================路由1：首页，展示所有用例 GET请求=====================
+# =============路由1：首页，展示所有用例 GET请求===============
 # @app.route 是路由装饰器：访问 http://127.0.0.1:5000/ 就会执行下面index函数
 @app.route('/')
 def index():
@@ -51,7 +55,7 @@ def index():
     return render_template("index.html", cases=case_list)
 
 
-# =====================路由2：新增用例页面，支持GET和POST两种请求=====================
+# ======路由2：新增用例页面，支持GET和POST两种请求====
 # GET：访问页面（打开表单）；POST：表单提交，保存数据到数据库
 @app.route("/add", methods=["GET","POST"])
 def add_case():
@@ -76,7 +80,7 @@ def add_case():
         VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
         """
         # 执行sql，把表单获取的值依次填充占位符
-        cursor.execute(sql, (case_name,url,method,headers,params,expect_code,expect_result,env_id))
+        cursor.execute(sql, (case_name, url, method, headers, params, expect_code, expect_result, env_id))
         # commit提交事务，数据库才真正写入这条记录
         conn.commit()
         conn.close()
@@ -87,7 +91,7 @@ def add_case():
     return render_template("add.html")
 
 
-# =====================路由3：删除用例=====================
+# ====路由3：删除用例======
 # <int:case_id>：url路径参数，例如 /delete/2，case_id=2
 @app.route("/delete/<int:case_id>")
 def delete_case(case_id):
@@ -101,7 +105,7 @@ def delete_case(case_id):
     return redirect(url_for("index"))
 
 
-# =====================【替换这一段：一键执行测试路由｜完整带注释】=====================
+# ======新增：一键执行测试路由====
 @app.route("/run_test")
 def run_test():
     try:
@@ -124,8 +128,9 @@ def run_test():
             )
 
         # 3. 组装pytest执行命令，使用venv内python执行
-        # 执行test_cases/api_case.py，输出执行数据到allure-results
-        pytest_cmd = fr'"{python_exe_path}" -m pytest test_cases/api_case.py -v --alluredir=allure-results'
+        # --json-report：让pytest输出json报告，用来自动统计通过失败数量
+        # --json-report-file=report.json 把统计结果保存到report.json文件
+        pytest_cmd = fr'"{python_exe_path}" -m pytest test_cases/api_case.py -v --alluredir="{allure_result_dir}"'
 
         # 4. 调用系统命令执行pytest
         # shell=True Windows下开启cmd执行命令
@@ -140,26 +145,55 @@ def run_test():
             text=True
         )
 
-        # 获取命令返回码、正常输出、错误输出
-        return_code = result.returncode
-        stdout = result.stdout
-        stderr = result.stderr
 
-        # 根据pytest返回码判断结果：0=全部用例通过；非0代表有用例失败/报错
-        if return_code == 0:
-            msg = "✅ 测试执行完成，所有用例通过！"
+        # 初始化统计变量
+        pass_count = 0
+        fail_count = 0
+        task_status = "success"
+        report_url = "/report"
+
+        # 读取生成的report.json，解析用例执行效果
+        report_file_path = os.path.join(base_path,"report.json  ")
+        # json文件是否存在
+        if os.path.exists(report_file_path):
+            # 打开文件读取
+            with open(report_file_path, "r", encoding="utf-8") as f:
+                report_data = json.load(f)
+                # 读取通过用例数量，取不到默认返回0
+                pass_count = report_data["summary"].get("passed", 0)
+                # 读取失败用例数量，取不到默认返回0
+                fail_count = report_data["summary"].get("failed", 0)
+                # 如果失败数>0，任务状态修改为fail
+                if fail_count > 0:
+                    task_status = "fail"
+        #===本次执行记录插入历史表===
+        conn = get_db_conn()
+        cursor = conn.cursor()
+        # sql语句插入
+        insert_sql = """
+            INSERT INTO test_history(status, pass_count, fail_count, report_url, remark)
+            VALUES (%s, %s, %s, %s, %s) """
+        #拼接备注信息，总用例
+        remark_info = f"本次执行总用例书：{pass_count + fail_count}"
+        # 执行插入语句
+        cursor.execute(insert_sql,(task_status, pass_count, fail_count, report_url, remark_info))
+        # 提交事务，写入数据库
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+# 根据统计结果设置提示信息
+        if task_status == "success":
+            msg = f"执行完成，通过:{pass_count}条，失败：{fail_count}条"
+
         else:
-            msg = f"⚠️ 测试执行完成，存在失败用例。返回码:{return_code}\n控制台错误信息：{stderr}"
-
-    # 捕获try代码块里所有异常（文件不存在、路径错误、权限等）
+            msg = f"测试执行完成，存在失败用例。通过：{pass_count}，失败：{fail_count}条\n控制台错误信息：{result.stderr}"
     except Exception as e:
-        # 捕获异常，生成错误提示信息
-        msg = f"❌ 执行发生异常：{str(e)}"
-    # 【关键！】无论try成功还是触发异常，一定会执行return，Flask永远拿到页面响应，不会报None错误
+        msg = f"执行测试异常：{str(e)}"
     return render_template("index.html", msg=msg)
 
 
-# =========新增路由：打开allure报告无需终端命令打开页面 ========
+# =========新增路由：打开allure报告无需终端命令打开页面 =====
 @app.route("/report")
 def open_allure_report():
     try:
@@ -179,13 +213,33 @@ def open_allure_report():
             shell=True,
             cwd=base_path
         )
-        msg = "✅ Allure报告服务已启动，正在自动打开浏览器..."
+        msg = "Allure报告服务已启动，正在自动打开浏览器..."
     except Exception as e:
-        msg = f"❌ 打开报告异常：{str(e)}"
+        msg = f"打开报告异常：{str(e)}"
     # 返回首页并携带提示信息
     return render_template("index.html", msg=msg)
 
+# ====新增路由：查看测试历史====
+@app.route("/history")
+def show_history():
+    """查询所有测试记录传到前端页面渲染"""
+    conn = get_db_conn()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    # 查询test_history,按照时间倒叙
+    cursor.execute("SELECT * FROM test_history ORDER BY execute_time DESC")
+    # fetchall拿到全部查询结果
+    history_list = cursor.fetchall()
+    # 关闭数据库资源
+    cursor.close()
+    conn.close()
+    # 返回首页，history_list传给前端
+    return render_template("index.html", msg="",history_list=history_list)
+
+
+
 # 程序入口：直接运行python app.py时，启动flask服务
 if __name__ == '__main__':
+    # 程序启动，自动创建测试历史表
+    create_test_history_table()
     # debug=True，修改代码自动重启服务，开发用；上线必须关闭
     app.run(debug=True)

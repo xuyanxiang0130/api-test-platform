@@ -1,6 +1,7 @@
 # 数据库读写代码
 import pymysql
 from config.settings import DB_CONFIG
+import os
 
 def get_db_conn():
     """获取数据库连接对象"""
@@ -50,3 +51,27 @@ def add_case(case_name,url,method,headers,params,expect_code,expect_result,env_i
     conn.commit()
     cursor.close()
     conn.close()
+
+# 新增测试历史记录表建表SQL
+def create_test_history_table():
+    """创建测试任务历史记录表"""
+    # 获取数据库连接
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    # sql语句，创建表
+    create_sql = """
+    CREATE TABLE IF NOT EXISTS test_history (
+        id INT PRIMARY KEY AUTO_INCREMENT COMMENT '任务id',
+        execute_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '执行时间',
+        status VARCHAR(20) COMMENT '任务状态：success / fail',
+        pass_count INT DEFAULT 0 COMMENT '通过用例数量',
+        fail_count INT DEFAULT 0 COMMENT '失败用例数量',
+        report_url VARCHAR(500) COMMENT 'allure报告地址',
+        remark VARCHAR(1000) COMMENT '备注信息'
+    )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    cursor.execute(create_sql)
+    conn.commit()
+    cursor.close()
+    conn.close()
+

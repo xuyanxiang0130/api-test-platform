@@ -1,0 +1,100 @@
+# 定义这个workflow的名字，GitHub页面会显示
+name: ApiTestCI
+
+# 触发规则：当代码push到main分支时自动执行流水线
+on:
+  push:
+    branches: [ main ]
+
+# 任务配置
+jobs:
+  test-job:
+    # 使用ubuntu最新虚拟机作为CI运行环境
+    runs-on: ubuntu-latest
+    # 服务容器：启动MySQL数据库，供自动化脚本使用
+    services:
+      mysql:
+        image: mysql:8.0
+        # MySQL环境变量配置
+        env:
+          MYSQL_ROOT_PASSWORD: root123456   # root账号密码
+          MYSQL_DATABASE: api_test_db       # CI自动创建的数据库名
+        ports:
+          - 3306:3306
+        # 等待mysql就绪
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    # 流水线执行步骤
+    steps:
+      # 步骤1：拉取github仓库代码到CI服务器
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 步骤2：安装Python3.9（和你本地版本保持一致）
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      # 步骤3：安装项目python依赖
+      - name: Install python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 步骤4：安装Allure命令行工具（用来生成测试报告）
+      - name: Install Allure
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y allure
+
+      # 步骤5：初始化数据库，建表 + 插入CI执行需要的测试用例
+      - name: Init MySQL table and test data
+        run: |
+          mysql -h127.0.0.1 -uroot -proot123456 api_test_db << EOF
+          -- 创建用例表
+          CREATE TABLE IF NOT EXISTS test_case (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            case_name VARCHAR(200),
+            url VARCHAR(500),
+            method VARCHAR(20),
+            expect_code INT,
+            expect_result VARCHAR(200),
+            env_id INT
+          );
+          -- 创建执行历史表
+          CREATE TABLE IF NOT EXISTS test_history (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            execute_time DATETIME,
+            status VARCHAR(50),
+            pass_count INT,
+            fail_count INT,
+            remark VARCHAR(500)
+          );
+          -- 插入2条测试用例给CI流水线跑
+          INSERT INTO test_case(case_name,url,method,expect_code,expect_result,env_id)
+          VALUES
+          ('百度首页访问','https://www.baidu.com','GET',200,'baidu',1),
+          ('get请求示例','https://jsonplaceholder.typicode.com/posts/1','GET',200,'userId',1);
+          EOF
+
+      # 步骤6：执行pytest自动化，生成allure原始结果
+      - name: Run pytest test case
+        run: |
+          python -m pytest test_cases/api_case.py -v --alluredir=allure-results
+
+      # 步骤7：基于allure原始数据生成html报告
+      - name: Generate Allure HTML Report
+        run: |
+          allure generate allure-results --clean -o allure-report
+
+      # 步骤8：上传Allure报告作为流水线产物，跑完可以直接网页查看报告
+      - name: Upload Allure Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-test-report
+          path: allure-report

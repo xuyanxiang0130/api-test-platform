@@ -32,6 +32,11 @@
         <button style="background-color:#4169E1;color:white;margin-left:10px">查看Allure报告</button>
     </a>
 
+    <!-- 新增：查看执行历史按钮 -->
+    <a href="/history">
+        <button style="background-color:#9932CC;color:white;margin-left:10px">查看执行历史</button>
+    </a>
+
     <br><br>
     <!-- 表格展示所有用例 -->
     <table border="1" cellpadding="5">
@@ -62,5 +67,37 @@
         </tr>
         {% endfor %}
     </table>
+
+<!--如果history_list存在，渲染历史记录表格-->
+{% if history_list %}
+    <h2>测试执行历史记录</h2>
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>任务ID</th>
+            <th>执行时间</th>
+            <th>状态</th>
+            <th>通过数量</th>
+            <th>失败数量</th>
+            <th>备注</th>
+            <th>操作</th>
+        </tr>
+        {% for h in history_list %}
+        <tr>
+            <td>{{h.id}}</td>
+            <td>{{h.execute_time}}</td>
+            <td>{{h.status}}</td>
+            <td>{{h.pass_count}}</td>
+            <td>{{h.fail_count}}</td>
+            <td>{{h.remark}}</td>
+            <td>
+                <a href="{{h.report_url}}">
+                    <button>查看详情</button>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+
 </body>
 </html>
