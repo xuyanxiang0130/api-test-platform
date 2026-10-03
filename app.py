@@ -236,6 +236,7 @@ def show_history():
     return render_template("index.html", msg="",history_list=history_list)
 
 
+# ==
 
 # 程序入口：直接运行python app.py时，启动flask服务
 if __name__ == '__main__':
