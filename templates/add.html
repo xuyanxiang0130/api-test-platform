@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>新增用例</title>
+</head>
+<body>
+    <h2>新增接口测试用例</h2>
+    <form method="post">
+        <p>用例名称：<input type="text" name="case_name"></p>
+        <p>URL：<input type="text" name="url"></p>
+        <p>请求方法：<input type="text" name="method"></p>
+        <p>headers(json)：<input type="text" name="headers" value="{}"></p>
+        <p>params(json)：<input type="text" name="params"></p>
+        <p>预期状态码：<input type="number" name="expect_code"></p>
+        <p>预期结果：<input type="text" name="expect_result"></p>
+        <p>环境ID：<input type="number" name="env_id" value="1"></p>
+        <button type="submit">提交保存</button>
+    </form>
+    <br>
+    <a href="/">返回列表</a>
+</body>
+</html>

@@ -1,6 +1,40 @@
+# 虚拟环境文件夹，绝对不要上传
 venv/
+env/
+.venv/
+
+# Python编译缓存
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# allure生成的报告数据
+allure-results/
+allure-report/
+
+# flask缓存、日志文件
+*.log
+.pytest_cache/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE配置文件（pycharm）
+.idea/
+*.iml
+
+# vscode配置
+.vscode/
+
+# 测试报告、日志目录
 logs/
 reports/
-*.log
-.idea/
+
+# 数据库文件（如果有sqlite）
+*.sqlite
+*.db
+
+# 环境变量配置（防止密钥泄露）
+.env

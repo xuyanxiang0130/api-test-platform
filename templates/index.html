@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!-- 声明文档类型为html -->
+<html lang="zh-CN">
+<!-- 网页根标签 -->
+<head>
+    <!-- 设置编码，防止中文乱码 -->
+    <meta charset="UTF-8">
+    <!-- 网页标题 -->
+    <title>测试用例管理平台</title>
+</head>
+<body>
+    <!-- 页面大标题 -->
+    <h1>测试用例列表</h1>
+
+    <!-- 如果后端传来msg消息，就展示消息 -->
+    {% if msg %}
+        <!-- 展示提示信息 -->
+        <p style="font-size:18px;color:blue">{{msg}}</p>
+    {% endif %}
+
+    <!-- 跳转到新增用例页面的按钮 -->
+    <a href="/add">
+        <button>新增测试用例</button>
+    </a>
+
+    <!-- 【一键执行测试按钮】点击访问 /run_test路由 -->
+    <a href="/run_test">
+        <button style="background-color:#228B22;color:white">一键执行自动化测试</button>
+    </a>
+
+    <a href="/report">
+        <button style="background-color:#4169E1;color:white;margin-left:10px">查看Allure报告</button>
+    </a>
+
+    <br><br>
+    <!-- 表格展示所有用例 -->
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>ID</th>
+            <th>用例名称</th>
+            <th>URL</th>
+            <th>请求方法</th>
+            <th>预期状态码</th>
+            <th>预期结果</th>
+            <th>操作</th>
+        </tr>
+        <!-- jinja2模板循环，遍历后端传过来的cases列表 -->
+        {% for item in cases %}
+        <tr>
+            <td>{{item.id}}</td>
+            <td>{{item.case_name}}</td>
+            <td>{{item.url}}</td>
+            <td>{{item.method}}</td>
+            <td>{{item.expect_code}}</td>
+            <td>{{item.expect_result}}</td>
+            <td>
+                <!-- 删除按钮，访问/delete/id -->
+                <a href="/delete/{{item.id}}">
+                    <button>删除</button>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
