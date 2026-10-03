@@ -15,7 +15,11 @@ def test_api(case):
     # 获取接口地址
     url = case["url"]
     method = case["method"]
-    headers = json.loads(case["headers"]) if case["headers"] else {}
+    # 先安全取出headers，如果不存在，默认赋值None
+    headers_str = case.get("headers", None)
+    # 判断：有字符串就json解析，没有就空字典
+    headers = json.loads(headers_str) if headers_str else {}
+
     # 请求参数字符串转字典，没有body就赋值None
     body = json.loads(case["params"]) if case["params"] else None
     # 预期状态码
