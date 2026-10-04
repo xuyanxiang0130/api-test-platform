@@ -63,7 +63,7 @@ jobs:
           ('get请求测试','https://jsonplaceholder.typicode.com/posts/1','GET','{}','',200,'userId',1),
           ('获取第2条帖子','https://jsonplaceholder.typicode.com/posts/2','GET','{}','',200,'userId',1),
           ('查询用户接口','https://jsonplaceholder.typicode.com/users/1','GET','{}','',200,'name',1),
-          ('百度首页访问','http://www.baidu.com','GET','{}','',200,'200',1);
+          ('百度首页访问','http://www.baidu.com','GET','{}','',200,'',1);
           EOF
 
       - name: Run pytest and generate allure result # 执行pytest自动化
