@@ -1,3 +1,0 @@
-case_name,url,method,headers,params,expect_code,expect_result,env_id
-get请求测试1,https://jsonplaceholder.typicode.com/posts/1,GET,{},,200,userId,1
-get请求测试2,https://jsonplaceholder.typicode.com/posts/2,GET,{},,200,userId,1

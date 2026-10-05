@@ -38,3 +38,7 @@ reports/
 
 # 环境变量配置（防止密钥泄露）
 .env
+# 临时文本、json报告文件
+report.json
+*.txt
+
