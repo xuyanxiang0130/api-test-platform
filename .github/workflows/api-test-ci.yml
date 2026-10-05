@@ -1,0 +1,77 @@
+# .github/workflows/api-test-ci.yml
+name: Actions CI流水线配置
+on:
+  push:   # 代码push到仓库时自动触发流水线
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # 使用服务容器，启动mysql
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root123456
+          MYSQL_DATABASE: api_platform
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code # 拉取仓库代码
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install python dependencies # 安装项目依赖包
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Allure # 安装allure报告工具
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y allure
+
+      - name: Init MySQL table and test cases # 初始化表 + 插入测试用例
+        run: |
+          mysql -h127.0.0.1 -P3306 -uroot -proot123456 api_platform << EOF
+          CREATE TABLE IF NOT EXISTS test_case (
+              id INT PRIMARY KEY AUTO_INCREMENT,
+              case_name VARCHAR(255),
+              url VARCHAR(500),
+              method VARCHAR(50),
+              expect_code INT,
+              expect_result VARCHAR(255),
+              env_id INT,
+              headers TEXT NULL,
+              params TEXT NULL
+          );
+          TRUNCATE TABLE test_case;
+          INSERT INTO test_case(case_name,url,method,headers,params,expect_code,expect_result,env_id)
+          VALUES
+          ('get请求测试','https://jsonplaceholder.typicode.com/posts/1','GET','{}','',200,'userId',1),
+          ('获取第2条帖子','https://jsonplaceholder.typicode.com/posts/2','GET','{}','',200,'userId',1),
+          ('查询用户接口','https://jsonplaceholder.typicode.com/users/1','GET','{}','',200,'name',1),
+          ('百度首页访问','http://www.baidu.com','GET','{}','',200,'',1);
+          EOF
+
+      - name: Run pytest and generate allure result # 执行pytest自动化
+        run: |
+          python -m pytest test_cases/api_case.py -v --alluredir=allure-results
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root123456
+          DB_DATABASE: api_platform
