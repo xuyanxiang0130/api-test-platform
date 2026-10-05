@@ -1,0 +1,6 @@
+case_name,url,method,headers,params,expect_code,expect_result,env_id
+获取帖子GET,https://jsonplaceholder.typicode.com/posts/1,GET,{},,200,userId,1
+新增帖子POST,https://jsonplaceholder.typicode.com/posts,POST,{"Content-Type":"application/json"},{"title":"测试标题","body":"测试内容","userId":1},201,title,1
+修改帖子PUT,https://jsonplaceholder.typicode.com/posts/1,PUT,{"Content-Type":"application/json"},{"title":"更新标题"},200,title,1
+删除帖子DELETE,https://jsonplaceholder.typicode.com/posts/1,DELETE,{},,200,,1
+获取评论GET,https://jsonplaceholder.typicode.com/comments/1,GET,{},,200,email,1

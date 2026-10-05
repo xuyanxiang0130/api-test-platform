@@ -14,6 +14,9 @@ import webbrowser
 import json
 # 导入刚刚写的建表函数
 from models.db_model import create_test_history_table
+import csv
+# 内存读取上传文件，
+from io import StringIO
 
 
 # 创建Flask应用实例，__name__代表当前模块
@@ -236,7 +239,111 @@ def show_history():
     return render_template("index.html", msg="",history_list=history_list)
 
 
-# ==
+# ==新增：csv批量导入用例====
+@app.route('/batch_import', methods=['POST'])
+def batch_import_case():
+    """
+    批量导入测试用例，接受前端上传的文件，解析内容，批量写入test_case
+    """
+    # 1.获取前端上传的文件对象
+    upload_file = request.files.get("csv_file")
+    # 判断是否选择文件
+    if not upload_file:
+        return "没有选择上传文件，请重新选择", 400
+
+    # 读取文件内容解析成字符串
+    file_content = upload_file.read().decode("utf-8")
+    # 在内存中打开csv文件
+    f = StringIO(file_content)
+    # 读取，第一行为表头
+    reader = csv.DictReader(f)
+    # 统计变量
+    success_count = 0
+    fail_count = 0
+    error_msg_list = []
+    conn = get_db_conn()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # 循环读取文件的每一行
+        for row in reader:
+            try:
+                case_name = row["case_name"].strip()
+                url = row["url"].strip()
+                method = row["method"].strip()
+                headers = row["headers"].strip()
+                params = row["params"].strip()
+                expect_code = int(row["expect_code"].strip())
+                expect_result = row["expect_result"].strip()
+                env_id = int(row["env_id"].strip())
+
+                # sql：插入单条用例
+                insert_sql = """
+                    INSERT INTO test_case(case_name, url, method, headers, params, expect_code, expect_result, env_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """
+
+                cursor.execute(insert_sql, (case_name, url, method, headers, params, expect_code, expect_result, env_id))
+                success_count += 1
+            except Exception as e:
+                fail_count += 1
+                error_msg_list.append(f"行号{reader.line_num} 失败：{str(e)}")
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return f"导入整体失败，事务回滚： {str(e)}", 500
+    finally:
+        cursor.close()
+        conn.close()
+
+    result_text = f"""
+批量导入用例完成：
+成功：{success_count}条
+失败：{fail_count}条
+错误信息：{error_msg_list}
+<a href="/">返回首页</a>
+    """
+    return result_text
+
+
+# ==新增：csv导出用例功能 ==
+@app.route('/export_cases', methods=['GET'])
+def export_case():
+    """导出测试用例，查询test_case表所有数据，写入csv文件，下载给用户"""
+    import csv
+    from io import StringIO
+
+    output = StringIO()
+    headers = ["case_name", "url", "method", "headers", "params", "expect_code", "expect_result", "env_id"]
+    writer = csv.DictWriter(output, fieldnames=headers)
+    writer.writeheader()
+    # 查询数据库所有用例
+    conn = get_db_conn()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    cursor.execute("select case_name, url, method, headers, params, expect_code, expect_result, env_id from test_case")
+    case_list = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # 循环写入每一条用例
+    for case in case_list:
+        writer.writerow(case)
+
+    # 获取csv完整文本
+    csv_data = output.getvalue()
+    # 构建响应，设置响应头，告诉浏览器这是下载文件
+    from flask import Response
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=test_case_export.csv"}
+    )
+
+
+
+
+
+
 
 # 程序入口：直接运行python app.py时，启动flask服务
 if __name__ == '__main__':

@@ -21,12 +21,13 @@ def test_api(case):
     headers = json.loads(headers_str) if headers_str else {}
 
     # 请求参数字符串转字典，没有body就赋值None
-    body = json.loads(case["params"]) if case["params"] else None
+    params_str = case.get("params", None)
+    body = json.loads(params_str) if params_str else None
     # 预期状态码
     expect_code = case["expect_code"]
 
     # 调用send方法发送请求
-    resp = req.send(method, url, headers, body)
+    resp = req.send(method, url, headers, params=body, json_body=body)
     # 增加保护：如果resp是None，直接断言失败
     assert resp is not None, "接口请求失败，返回空"
     # 断言响应状态码和预期一致，失败pytest标记用例失败

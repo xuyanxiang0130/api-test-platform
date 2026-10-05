@@ -3,13 +3,14 @@ import requests
 
 class HttpRequest:
     """http请求封装类，统一处理所有接口请求"""
-    def send(self, method, url, headers=None, data=None):
+    def send(self, method, url, headers=None, params=None, json_body=None):
         """
         发送http请求
         :param method: 请求方法 GET POST PUT
         :param url: 完整接口地址
         :param headers: 请求头字典
-        :param data: post请求的body，字典
+        :param params: post请求的body，字典
+        :param json_body: post请求的body，字典
         :return: response对象
         """
         # 如果headers为空，赋值空字典，避免后续报错
@@ -21,7 +22,8 @@ class HttpRequest:
                 method=method,
                 url=url,
                 headers=headers,
-                json=data,
+                params=params,
+                json=json_body,
                 timeout=10
             )
             print(f"请求成功，status_code={res.status_code}")
@@ -29,6 +31,6 @@ class HttpRequest:
             return res
         except Exception as e:
             # 捕获异常，打印错误信息
-            print(f"❌ 请求异常：{e}")
+            print(f"请求异常：{e}")
             # 异常时返回None，后续代码做判断
             return None
