@@ -10,6 +10,7 @@ __pycache__/
 *.pyd
 
 # allure生成的报告数据
+allure_results/
 allure-results/
 allure-report/
 

@@ -1,2 +1,0 @@
-正在发送请求：GET https://jsonplaceholder.typicode.com/posts/2
-请求成功，status_code=200
