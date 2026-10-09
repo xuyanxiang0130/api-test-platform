@@ -30,24 +30,24 @@
    - 提交代码到GitHub仓库，自动触发CI任务
    - CI环境自动初始化MySQL，自动执行全套接口自动化测试
 
-## 项目目录结构
-api-test-platform/
-├── app.py                 # Flask 主服务，所有 web 路由
-├── common/
-│   └── request_util.py    # 接口请求封装工具类
-├── config/
-│   └── settings.py        # 配置文件，数据库配置，兼容本地 & CI 环境变量
-├── models/
-│   └── db_model.py         # 数据库建表、查询、操作函数
-├── test_cases/
-│   └── api_case.py        # pytest 测试脚本，从 MySQL 读取用例做数据驱动
-├── templates/             # HTML 前端页面
-├── .github/workflows/
-│   └── ci.yml             # GitHub Actions CI 流水线配置
-├── requirements.txt       # 项目依赖
-├── .gitignore             # git 忽略文件
-└── README.md              # 项目说明文档
 
+# 项目目录结构
+- api-test-platform/
+  - app.py # Flask 主服务，所有 web 路由
+  - common/
+    - request_util.py # 接口请求封装工具类
+  - config/
+    - settings.py # 配置文件，数据库配置，兼容本地 & CI环境变量
+  - models/
+    - db_model.py # 数据库建表、查询、操作函数
+  - test_cases/
+    - api_case.py # pytest 测试脚本，从 MySQL 读取用例做数据驱动
+  - templates/ # HTML前端页面
+  - .github/workflows/
+    - ci.yml # GitHub Actions CI 流水线配置
+  - requirements.txt # 项目依赖
+  - .gitignore # git 忽略文件
+  - README.md # 项目说明文档
 
 
 ## 本地部署步骤
